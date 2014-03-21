@@ -139,6 +139,10 @@
 # [*package*]
 #   The name of graphite package
 #
+# [*dependencies_packages*]
+#   The names of package dependencies that need to be installed for Graphite
+#   to work
+#
 # [*service*]
 #   The name of graphite service
 #
@@ -161,6 +165,9 @@
 # [*config_file*]
 #   Main configuration file path
 #
+# [*wsgi_config_file*]
+#   Main configuration file path
+#
 # [*config_file_mode*]
 #   Main configuration file path mode
 #
@@ -179,6 +186,9 @@
 # [*data_dir*]
 #   Path of application data directory. Used by puppi
 #
+# [*webapp_dir*]
+#   Path of web application directory.
+#
 # [*log_dir*]
 #   Base logs directory. Used by puppi
 #
@@ -196,66 +206,88 @@
 #   This is used by monitor, firewall and puppi (optional) components
 #   Can be defined also by the (top scope) variable $graphite_protocol
 #
+# [*secret_key*]
+#   Set this to a long, random unique string to use as a secret key for this
+#   install. This key is used for salting of hashes used in auth tokens,
+#   CRSF middleware, cookie storage, etc. This should be set identically among
+#   instances if used behind a load balancer.
+#
+# [*timezone*]
+#   Set your local timezone (Django's default is America/Chicago)
+#   If your graphs appear to be offset by a couple hours then this probably
+#   needs to be explicitly set to your local timezone.
+#
+# [*vhost_template*]
+#  Template used to configure Apache vhost
+#
 #
 # See README for usage patterns.
 #
 class graphite (
-  $my_class            = params_lookup( 'my_class' ),
-  $source              = params_lookup( 'source' ),
-  $source_dir          = params_lookup( 'source_dir' ),
-  $source_dir_purge    = params_lookup( 'source_dir_purge' ),
-  $template            = params_lookup( 'template' ),
-  $service_autorestart = params_lookup( 'service_autorestart' , 'global' ),
-  $options             = params_lookup( 'options' ),
-  $version             = params_lookup( 'version' ),
-  $absent              = params_lookup( 'absent' ),
-  $disable             = params_lookup( 'disable' ),
-  $disableboot         = params_lookup( 'disableboot' ),
-  $monitor             = params_lookup( 'monitor' , 'global' ),
-  $monitor_tool        = params_lookup( 'monitor_tool' , 'global' ),
-  $monitor_target      = params_lookup( 'monitor_target' , 'global' ),
-  $puppi               = params_lookup( 'puppi' , 'global' ),
-  $puppi_helper        = params_lookup( 'puppi_helper' , 'global' ),
-  $firewall            = params_lookup( 'firewall' , 'global' ),
-  $firewall_tool       = params_lookup( 'firewall_tool' , 'global' ),
-  $firewall_src        = params_lookup( 'firewall_src' , 'global' ),
-  $firewall_dst        = params_lookup( 'firewall_dst' , 'global' ),
-  $debug               = params_lookup( 'debug' , 'global' ),
-  $audit_only          = params_lookup( 'audit_only' , 'global' ),
-  $noops               = params_lookup( 'noops' ),
-  $package             = params_lookup( 'package' ),
-  $service             = params_lookup( 'service' ),
-  $service_status      = params_lookup( 'service_status' ),
-  $process             = params_lookup( 'process' ),
-  $process_args        = params_lookup( 'process_args' ),
-  $process_user        = params_lookup( 'process_user' ),
-  $config_dir          = params_lookup( 'config_dir' ),
-  $config_file         = params_lookup( 'config_file' ),
-  $config_file_mode    = params_lookup( 'config_file_mode' ),
-  $config_file_owner   = params_lookup( 'config_file_owner' ),
-  $config_file_group   = params_lookup( 'config_file_group' ),
-  $config_file_init    = params_lookup( 'config_file_init' ),
-  $pid_file            = params_lookup( 'pid_file' ),
-  $data_dir            = params_lookup( 'data_dir' ),
-  $log_dir             = params_lookup( 'log_dir' ),
-  $log_file            = params_lookup( 'log_file' ),
-  $port                = params_lookup( 'port' ),
-  $protocol            = params_lookup( 'protocol' )
-  ) inherits graphite::params {
+  $my_class              = params_lookup('my_class'),
+  $source                = params_lookup('source'),
+  $wsgi_source           = params_lookup('wsgi_source'),
+  $source_dir            = params_lookup('source_dir'),
+  $source_dir_purge      = params_lookup('source_dir_purge'),
+  $template              = params_lookup('template'),
+  $wsgi_template         = params_lookup('wsgi_template'),
+  $service_autorestart   = params_lookup('service_autorestart', 'global'),
+  $options               = params_lookup('options'),
+  $version               = params_lookup('version'),
+  $absent                = params_lookup('absent'),
+  $disable               = params_lookup('disable'),
+  $disableboot           = params_lookup('disableboot'),
+  $monitor               = params_lookup('monitor', 'global'),
+  $monitor_tool          = params_lookup('monitor_tool', 'global'),
+  $monitor_target        = params_lookup('monitor_target', 'global'),
+  $puppi                 = params_lookup('puppi', 'global'),
+  $puppi_helper          = params_lookup('puppi_helper', 'global'),
+  $firewall              = params_lookup('firewall', 'global'),
+  $firewall_tool         = params_lookup('firewall_tool', 'global'),
+  $firewall_src          = params_lookup('firewall_src', 'global'),
+  $firewall_dst          = params_lookup('firewall_dst', 'global'),
+  $debug                 = params_lookup('debug', 'global'),
+  $audit_only            = params_lookup('audit_only', 'global'),
+  $noops                 = params_lookup('noops'),
+  $package               = params_lookup('package'),
+  $dependencies_packages = params_lookup('dependencies_packages'),
+  $service               = params_lookup('service'),
+  $service_status        = params_lookup('service_status'),
+  $process               = params_lookup('process'),
+  $process_args          = params_lookup('process_args'),
+  $process_user          = params_lookup('process_user'),
+  $config_dir            = params_lookup('config_dir'),
+  $config_file           = params_lookup('config_file'),
+  $wsgi_config_file      = params_lookup('wsgi_config_file'),
+  $config_file_mode      = params_lookup('config_file_mode'),
+  $config_file_owner     = params_lookup('config_file_owner'),
+  $config_file_group     = params_lookup('config_file_group'),
+  $config_file_init      = params_lookup('config_file_init'),
+  $pid_file              = params_lookup('pid_file'),
+  $data_dir              = params_lookup('data_dir'),
+  $webapp_dir            = params_lookup('webapp_dir'),
+  $log_dir               = params_lookup('log_dir'),
+  $log_file              = params_lookup('log_file'),
+  $port                  = params_lookup('port'),
+  $protocol              = params_lookup('protocol'),
+  $secret_key            = params_lookup('secret_key'),
+  $timezone              = params_lookup('timezone'),
+  $vhost_template        = params_lookup('vhost_template'),) inherits graphite::params {
+  $bool_source_dir_purge = any2bool($source_dir_purge)
+  $bool_service_autorestart = any2bool($service_autorestart)
+  $bool_absent = any2bool($absent)
+  $bool_disable = any2bool($disable)
+  $bool_disableboot = any2bool($disableboot)
+  $bool_monitor = any2bool($monitor)
+  $bool_puppi = any2bool($puppi)
+  $bool_firewall = any2bool($firewall)
+  $bool_debug = any2bool($debug)
+  $bool_audit_only = any2bool($audit_only)
+  $bool_noops = any2bool($noops)
 
-  $bool_source_dir_purge=any2bool($source_dir_purge)
-  $bool_service_autorestart=any2bool($service_autorestart)
-  $bool_absent=any2bool($absent)
-  $bool_disable=any2bool($disable)
-  $bool_disableboot=any2bool($disableboot)
-  $bool_monitor=any2bool($monitor)
-  $bool_puppi=any2bool($puppi)
-  $bool_firewall=any2bool($firewall)
-  $bool_debug=any2bool($debug)
-  $bool_audit_only=any2bool($audit_only)
-  $bool_noops=any2bool($noops)
+  require carbon
 
-  ### Definition of some variables used in the module
+  # ## Definition of some variables used in the module
   $manage_package = $graphite::bool_absent ? {
     true  => 'absent',
     false => $graphite::version,
@@ -274,15 +306,15 @@ class graphite (
 
   $manage_service_ensure = $graphite::bool_disable ? {
     true    => 'stopped',
-    default =>  $graphite::bool_absent ? {
+    default => $graphite::bool_absent ? {
       true    => 'stopped',
       default => 'running',
     },
   }
 
   $manage_service_autorestart = $graphite::bool_service_autorestart ? {
-    true    => Service[graphite],
-    false   => undef,
+    # true  => Service['apache'], # dont know how to handle cyclic dependencies yet ...
+    default => undef,
   }
 
   $manage_file = $graphite::bool_absent ? {
@@ -290,16 +322,18 @@ class graphite (
     default => 'present',
   }
 
-  if $graphite::bool_absent == true
-  or $graphite::bool_disable == true
-  or $graphite::bool_disableboot == true {
+  $manage_directory = $graphite::bool_absent ? {
+    true    => 'absent',
+    default => 'directory',
+  }
+
+  if $graphite::bool_absent == true or $graphite::bool_disable == true or $graphite::bool_disableboot == true {
     $manage_monitor = false
   } else {
     $manage_monitor = true
   }
 
-  if $graphite::bool_absent == true
-  or $graphite::bool_disable == true {
+  if $graphite::bool_absent == true or $graphite::bool_disable == true {
     $manage_firewall = false
   } else {
     $manage_firewall = true
@@ -316,29 +350,36 @@ class graphite (
   }
 
   $manage_file_source = $graphite::source ? {
-    ''        => undef,
-    default   => $graphite::source,
+    ''      => undef,
+    default => $graphite::source,
+  }
+
+  $manage_wsgi_file_source = $graphite::wsgi_source ? {
+    ''      => undef,
+    default => $graphite::wsgi_source,
   }
 
   $manage_file_content = $graphite::template ? {
-    ''        => undef,
-    default   => template($graphite::template),
+    ''      => undef,
+    default => template($graphite::template),
   }
 
-  ### Managed resources
+  $manage_wsgi_file_content = $graphite::wsgi_template ? {
+    ''      => undef,
+    default => template($graphite::wsgi_template),
+  }
+
+  $vhost_enable = !$graphite::absent
+
+  # ## Managed resources
+  package { $graphite::dependencies_packages:
+    ensure => $graphite::manage_package,
+    noop   => $graphite::bool_noops,
+  } ->
   package { $graphite::package:
-    ensure  => $graphite::manage_package,
-    noop    => $graphite::bool_noops,
-  }
-
-  service { 'graphite':
-    ensure     => $graphite::manage_service_ensure,
-    name       => $graphite::service,
-    enable     => $graphite::manage_service_enable,
-    hasstatus  => $graphite::service_status,
-    pattern    => $graphite::process,
-    require    => Package[$graphite::package],
-    noop       => $graphite::bool_noops,
+    ensure   => $graphite::manage_package,
+    noop     => $graphite::bool_noops,
+    provider => 'pip',
   }
 
   file { 'graphite.conf':
@@ -373,16 +414,75 @@ class graphite (
     }
   }
 
+  exec { 'init-graphite-db':
+    command => '/usr/bin/python manage.py syncdb --noinput',
+    cwd     => "${graphite::webapp_dir}/graphite",
+    creates => "${graphite::data_dir}/graphite.db",
+    require => File['graphite.conf'],
+  } -> file { 'graphite.db':
+    ensure => $graphite::manage_file,
+    path   => "${graphite::data_dir}/graphite.db",
+    owner  => $apache::process_user,
+    mode   => '0644',
+  }
 
-  ### Include custom class if $my_class is set
+  file { 'graphite.webapp.log.dir':
+    ensure  => $graphite::manage_directory,
+    path    => "${graphite::log_dir}/webapp",
+    owner   => $apache::process_user,
+    group   => 'root',
+    mode    => '0755',
+    audit   => $graphite::manage_audit,
+    noop    => $graphite::bool_noops,
+    require => Package[$graphite::package],
+  }
+
+  # ## Apache configuration
+  # run directory used for WSGI
+  file { 'graphite-wsgi-conf':
+    ensure  => $graphite::manage_file,
+    path    => $graphite::wsgi_config_file,
+    mode    => $apache::config_file_mode,
+    owner   => $apache::config_file_owner,
+    group   => $apache::config_file_group,
+    require => Package[$graphite::package],
+    notify  => $apache::manage_service_autorestart,
+    source  => $graphite::manage_wsgi_file_source,
+    content => $graphite::manage_wsgi_file_content,
+    replace => $graphite::manage_file_replace,
+    audit   => $graphite::manage_audit,
+    noop    => $graphite::bool_noops,
+  }
+
+  file { 'apache.wsgi.run':
+    ensure => $graphite::manage_directory,
+    path   => "${apache::config_dir}/run",
+    owner  => $apache::process_user,
+    group  => 'root',
+    mode   => '0755',
+    audit  => $graphite::manage_audit,
+    noop   => $graphite::bool_noops,
+  }
+
+  apache::module { 'wsgi':
+    ensure  => $graphite::manage_package,
+    require => Package['libapache2-mod-wsgi'],
+  } ->
+  apache::vhost { 'graphite':
+    enable   => $graphite::vhost_enable,
+    docroot  => $graphite::webapp_dir,
+    template => $graphite::vhost_template,
+  }
+
+  # ## Include custom class if $my_class is set
   if $graphite::my_class {
     include $graphite::my_class
   }
 
-
-  ### Provide puppi data, if enabled ( puppi => true )
+  # ## Provide puppi data, if enabled ( puppi => true )
   if $graphite::bool_puppi == true {
-    $classvars=get_class_args()
+    $classvars = get_class_args()
+
     puppi::ze { 'graphite':
       ensure    => $graphite::manage_file,
       variables => $classvars,
@@ -391,51 +491,7 @@ class graphite (
     }
   }
 
-
-  ### Service monitoring, if enabled ( monitor => true )
-  if $graphite::bool_monitor == true {
-    if $graphite::port != '' {
-      monitor::port { "graphite_${graphite::protocol}_${graphite::port}":
-        protocol => $graphite::protocol,
-        port     => $graphite::port,
-        target   => $graphite::monitor_target,
-        tool     => $graphite::monitor_tool,
-        enable   => $graphite::manage_monitor,
-        noop     => $graphite::bool_noops,
-      }
-    }
-    if $graphite::service != '' {
-      monitor::process { 'graphite_process':
-        process  => $graphite::process,
-        service  => $graphite::service,
-        pidfile  => $graphite::pid_file,
-        user     => $graphite::process_user,
-        argument => $graphite::process_args,
-        tool     => $graphite::monitor_tool,
-        enable   => $graphite::manage_monitor,
-        noop     => $graphite::bool_noops,
-      }
-    }
-  }
-
-
-  ### Firewall management, if enabled ( firewall => true )
-  if $graphite::bool_firewall == true and $graphite::port != '' {
-    firewall { "graphite_${graphite::protocol}_${graphite::port}":
-      source      => $graphite::firewall_src,
-      destination => $graphite::firewall_dst,
-      protocol    => $graphite::protocol,
-      port        => $graphite::port,
-      action      => 'allow',
-      direction   => 'input',
-      tool        => $graphite::firewall_tool,
-      enable      => $graphite::manage_firewall,
-      noop        => $graphite::bool_noops,
-    }
-  }
-
-
-  ### Debugging, if enabled ( debug => true )
+  # ## Debugging, if enabled ( debug => true )
   if $graphite::bool_debug == true {
     file { 'debug_graphite':
       ensure  => $graphite::manage_file,
@@ -443,7 +499,8 @@ class graphite (
       mode    => '0640',
       owner   => 'root',
       group   => 'root',
-      content => inline_template('<%= scope.to_hash.reject { |k,v| k.to_s =~ /(uptime.*|path|timestamp|free|.*password.*|.*psk.*|.*key)/ }.to_yaml %>'),
+      content => inline_template('<%= scope.to_hash.reject { |k,v| k.to_s =~ /(uptime.*|path|timestamp|free|.*password.*|.*psk.*|.*key)/ }.to_yaml %>'
+      ),
       noop    => $graphite::bool_noops,
     }
   }

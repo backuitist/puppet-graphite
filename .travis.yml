@@ -19,4 +19,3 @@ gemfile: .gemfile
 notifications:
   email:
     - guillaume.lederrey@gmail.com
-
