@@ -217,9 +217,41 @@
 #   If your graphs appear to be offset by a couple hours then this probably
 #   needs to be explicitly set to your local timezone.
 #
+# [*server_name*]
+#   The server name used to configure Apache vhost.
+#
 # [*vhost_template*]
 #  Template used to configure Apache vhost
 #
+# [*cluster_servers*]
+#   This should list the IP address (and optionally port) of the webapp on each
+#   remote server in the cluster. These servers must each have local access to
+#   metric data. Note that the first server to return a match for a query will be
+#   used.
+#
+# [*carbonlink_hosts*]
+#   If you are running multiple carbon-caches on this machine (typically behind a relay using
+#   consistent hashing), you'll need to list the ip address, cache query port, and instance name of each carbon-cache
+#   instance on the local machine (NOT every carbon-cache in the entire cluster). The default cache query port is 7002
+#   and a common scheme is to use 7102 for instance b, 7202 for instance c, etc
+#
+# [*memcache_hosts*]
+#   This lists the memcached servers that will be used by this webapp.
+#   If you have a cluster of webapps you should ensure all of them
+#   have the *exact* same value for this setting. That will maximize cache
+#   efficiency. Setting MEMCACHE_HOSTS to be empty will turn off use of
+#   memcached entirely.
+#
+#   You should not use the loopback address (127.0.0.1) here if using clustering
+#   as every webapp in the cluster should use the exact same values to prevent
+#   unneeded cache misses. Set to [] to disable caching of images and fetched data
+#
+# [*db_name*]
+# [*db_engine*]
+# [*db_user*]
+# [*db_password*]
+# [*db_host*]
+# [*db_port*]
 #
 # See README for usage patterns.
 #
@@ -272,7 +304,17 @@ class graphite (
   $protocol              = params_lookup('protocol'),
   $secret_key            = params_lookup('secret_key'),
   $timezone              = params_lookup('timezone'),
-  $vhost_template        = params_lookup('vhost_template'),) inherits graphite::params {
+  $server_name           = params_lookup('server_name'),
+  $vhost_template        = params_lookup('vhost_template'),
+  $cluster_servers       = params_lookup('cluster_servers'),
+  $carbonlink_hosts      = params_lookup('carbonlink_hosts'),
+  $memcache_hosts        = params_lookup('memcache_hosts'),
+  $db_name               = params_lookup('db_name'),
+  $db_engine             = params_lookup('db_engine'),
+  $db_user               = params_lookup('db_user'),
+  $db_password           = params_lookup('db_password'),
+  $db_host               = params_lookup('db_host'),
+  $db_port               = params_lookup('db_port'),) inherits graphite::params {
   $bool_source_dir_purge = any2bool($source_dir_purge)
   $bool_service_autorestart = any2bool($service_autorestart)
   $bool_absent = any2bool($absent)
@@ -437,6 +479,17 @@ class graphite (
     require => Package[$graphite::package],
   }
 
+  file { 'graphite.webapp.index':
+    ensure  => $graphite::manage_file,
+    path    => "${graphite::data_dir}/index",
+    owner   => $apache::process_user,
+    group   => 'root',
+    mode    => '0644',
+    audit   => $graphite::manage_audit,
+    noop    => $graphite::bool_noops,
+    require => Package[$graphite::package],
+  }
+
   # ## Apache configuration
   # run directory used for WSGI
   file { 'graphite-wsgi-conf':
@@ -469,9 +522,10 @@ class graphite (
     require => Package['libapache2-mod-wsgi'],
   } ->
   apache::vhost { 'graphite':
-    enable   => $graphite::vhost_enable,
-    docroot  => $graphite::webapp_dir,
-    template => $graphite::vhost_template,
+    enable      => $graphite::vhost_enable,
+    docroot     => $graphite::webapp_dir,
+    template    => $graphite::vhost_template,
+    server_name => $graphite::server_name,
   }
 
   # ## Include custom class if $my_class is set

@@ -24,6 +24,7 @@ class graphite::params {
       'python-ldap',
       'python-cairo',
       'python-django',
+      'python-mysqldb',
       'python-twisted',
       'python-django-tagging',
       'python-simplejson',
@@ -108,7 +109,19 @@ class graphite::params {
 
   $secret_key = 'UNSAFE_DEFAULT'
   $timezone = 'Europe/Zurich'
+  $server_name = $::fqdn
   $vhost_template = 'graphite/vhost.conf.erb'
+
+  $cluster_servers = ''
+  $carbonlink_hosts = ''
+  $memcache_hosts = ''
+
+  $db_name = '/opt/graphite/storage/graphite.db'
+  $db_engine = 'django.db.backends.sqlite3'
+  $db_user = ''
+  $db_password = ''
+  $db_host = ''
+  $db_port = ''
 
   # General Settings
   $my_class = ''
