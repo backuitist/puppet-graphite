@@ -16,7 +16,6 @@
 WSGISocketPrefix run/wsgi
 
 <VirtualHost *:80>
-        ServerName <%= @server_name_value %>
         DocumentRoot "<%= @docroot %>"
         ErrorLog <%= scope.lookupvar('apache::log_dir') %>/graphite-error.log
         CustomLog <%= scope.lookupvar('apache::log_dir') %>/graphite-access.log common
